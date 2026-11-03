@@ -16,7 +16,6 @@ body {
   display: none !important;
 }
 
-/* CARDS GLASSMORPHISM & NEON */
 .glass-card {
   background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(16px);
@@ -31,7 +30,6 @@ body {
   letter-spacing: 2px;
 }
 
-/* TELA DE BLOQUEIO */
 .gatekeeper-screen {
   min-height: 100vh;
   display: flex;
@@ -60,7 +58,6 @@ body {
   margin-bottom: 20px;
 }
 
-/* JOGO SIMON */
 .simon-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -99,7 +96,6 @@ body {
   margin-bottom: 15px;
 }
 
-/* BOTÕES NEON */
 .neon-btn {
   width: 100%;
   padding: 12px 24px;
@@ -117,22 +113,32 @@ body {
   color: #fff;
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
 }
-
-.red-neon:hover {
-  box-shadow: 0 0 25px rgba(239, 68, 68, 0.8);
-}
+.red-neon:hover { box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
 
 .green-neon {
   background: #10b981;
   color: #fff;
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
 }
+.green-neon:hover { box-shadow: 0 0 25px rgba(16, 185, 129, 0.8); }
 
-.green-neon:hover {
-  box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
+.blue-neon {
+  background: #0284c7;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+.blue-neon:hover { box-shadow: 0 0 25px rgba(56, 189, 248, 0.8); }
+
+.audio-btn {
+  background: #1e293b;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-/* NAVBAR & LAYOUT */
 .navbar {
   display: flex;
   justify-content: space-between;
@@ -189,7 +195,6 @@ body {
   box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
 }
 
-/* ÁREA DO JOGO */
 .game-section {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -211,6 +216,7 @@ body {
 .game-info {
   font-weight: bold;
   color: #38bdf8;
+  font-size: 0.9rem;
 }
 
 .canvas-wrapper {
@@ -219,6 +225,17 @@ body {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.shake {
+  animation: shakeAnim 0.2s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shakeAnim {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+  40%, 60% { transform: translate3d(6px, 0, 0); }
 }
 
 canvas {
@@ -236,7 +253,6 @@ canvas {
   padding: 20px;
 }
 
-/* CONTROLES MOBILE */
 .dpad {
   display: grid;
   grid-template-columns: repeat(3, 45px);

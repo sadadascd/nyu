@@ -1,40 +1,73 @@
-// GESTÃO DE PONTUAÇÃO GLOBAL
+// GESTÃO AUDIO WEB AUDIO API
+let soundEnabled = true;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq, type = 'square', duration = 0.1) {
+  if (!soundEnabled) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+document.getElementById('btn-audio-toggle').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  document.getElementById('btn-audio-toggle').innerText = soundEnabled ? '🔊 Som: ON' : '🔇 Som: OFF';
+});
+
+// PONTUAÇÃO E LOCALSTORAGE
 let totalScore = 0;
+let highScores = {
+  snake: localStorage.getItem('hs_snake') || 0,
+  shooter: localStorage.getItem('hs_shooter') || 0,
+  breakout: localStorage.getItem('hs_breakout') || 0
+};
+
+document.getElementById('snake-high').innerText = highScores.snake;
+document.getElementById('shooter-high').innerText = highScores.shooter;
+document.getElementById('breakout-high').innerText = highScores.breakout;
+
 function addScore(pts) {
   totalScore += pts;
   document.getElementById('global-score').innerText = totalScore;
 }
 
-// --------------------------------------------------
-// 1. LÓGICA DO JOGO DE DESBLOQUEIO (SIMON)
-// --------------------------------------------------
+function updateHighScore(game, score) {
+  if (score > highScores[game]) {
+    highScores[game] = score;
+    localStorage.setItem(`hs_${game}`, score);
+    document.getElementById(`${game}-high`).innerText = score;
+  }
+}
+
+function triggerShake(elementId) {
+  const el = document.getElementById(elementId);
+  el.classList.remove('shake');
+  void el.offsetWidth;
+  el.classList.add('shake');
+}
+
+// 1. DESBLOQUEIO (SIMON)
 const simonBtns = document.querySelectorAll('.simon-btn');
 const btnStartSimon = document.getElementById('btn-start-simon');
 const simonStatus = document.getElementById('simon-status');
+let simonSequence = [], playerSequence = [], simonPlaying = false;
+const simonFreqs = [261.6, 329.6, 392.0, 523.2];
 
-let simonSequence = [];
-let playerSequence = [];
-let simonPlaying = false;
-
-btnStartSimon.addEventListener('click', startSimon);
-
-function startSimon() {
-  simonSequence = [];
-  playerSequence = [];
+btnStartSimon.addEventListener('click', () => {
+  simonSequence = []; playerSequence = [];
   simonStatus.innerText = "Observe a sequência...";
   btnStartSimon.classList.add('hidden');
-  nextSimonRound();
-}
-
-function nextSimonRound() {
-  playerSequence = [];
-  simonSequence = [];
-  // Gera sequência de 3 passos para liberação
-  for(let i = 0; i < 3; i++) {
-    simonSequence.push(Math.floor(Math.random() * 4));
-  }
+  for (let i = 0; i < 3; i++) simonSequence.push(Math.floor(Math.random() * 4));
   playSimonSequence();
-}
+});
 
 function playSimonSequence() {
   simonPlaying = true;
@@ -42,7 +75,7 @@ function playSimonSequence() {
   const interval = setInterval(() => {
     flashSimonBtn(simonSequence[i]);
     i++;
-    if(i >= simonSequence.length) {
+    if (i >= simonSequence.length) {
       clearInterval(interval);
       simonPlaying = false;
       simonStatus.innerText = "Sua vez! Repita a sequência.";
@@ -50,267 +83,334 @@ function playSimonSequence() {
   }, 600);
 }
 
-function flashSimonBtn(colorIndex) {
-  const btn = simonBtns[colorIndex];
+function flashSimonBtn(index) {
+  const btn = simonBtns[index];
   btn.classList.add('active');
+  playSound(simonFreqs[index], 'sine', 0.2);
   setTimeout(() => btn.classList.remove('active'), 300);
 }
 
 simonBtns.forEach(btn => {
   btn.addEventListener('click', (e) => {
-    if(simonPlaying || simonSequence.length === 0) return;
-    
-    const colorClicked = parseInt(e.target.dataset.color);
-    flashSimonBtn(colorClicked);
-    playerSequence.push(colorClicked);
+    if (simonPlaying || simonSequence.length === 0) return;
+    const clicked = parseInt(e.target.dataset.color);
+    flashSimonBtn(clicked);
+    playerSequence.push(clicked);
+    const curr = playerSequence.length - 1;
 
-    const currentIndex = playerSequence.length - 1;
-
-    if(playerSequence[currentIndex] !== simonSequence[currentIndex]) {
-      simonStatus.innerText = "❌ Sequência errada! Tente de novo.";
+    if (playerSequence[curr] !== simonSequence[curr]) {
+      simonStatus.innerText = "❌ Sequência errada!";
+      playSound(150, 'sawtooth', 0.3);
       btnStartSimon.classList.remove('hidden');
-      simonSequence = [];
       return;
     }
 
-    if(playerSequence.length === simonSequence.length) {
+    if (playerSequence.length === simonSequence.length) {
       simonStatus.innerText = "✅ Acesso Concedido!";
-      setTimeout(unlockArcadeHub, 800);
+      playSound(587.3, 'triangle', 0.4);
+      setTimeout(() => {
+        document.getElementById('gatekeeper').classList.add('hidden');
+        document.getElementById('arcade-portal').classList.remove('hidden');
+      }, 800);
     }
   });
 });
 
-function unlockArcadeHub() {
-  document.getElementById('gatekeeper').classList.add('hidden');
-  document.getElementById('arcade-portal').classList.remove('hidden');
+// ABAS
+const tabs = {
+  snake: document.getElementById('tab-snake'),
+  shooter: document.getElementById('tab-shooter'),
+  breakout: document.getElementById('tab-breakout')
+};
+const sections = {
+  snake: document.getElementById('section-snake'),
+  shooter: document.getElementById('section-shooter'),
+  breakout: document.getElementById('section-breakout')
+};
+
+Object.keys(tabs).forEach(key => {
+  tabs[key].addEventListener('click', () => {
+    playSound(400, 'sine', 0.05);
+    Object.keys(tabs).forEach(k => {
+      tabs[k].classList.remove('active');
+      sections[k].classList.add('hidden');
+    });
+    tabs[key].classList.add('active');
+    sections[key].classList.remove('hidden');
+  });
+});
+
+// PARTÍCULAS
+class Particle {
+  constructor(x, y, color) {
+    this.x = x; this.y = y; this.color = color;
+    this.radius = Math.random() * 3 + 1;
+    this.vx = (Math.random() - 0.5) * 6;
+    this.vy = (Math.random() - 0.5) * 6;
+    this.alpha = 1;
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy; this.alpha -= 0.03;
+  }
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(this.alpha, 0);
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
-// --------------------------------------------------
-// 2. TROCA DE ABAS DO ARCADE
-// --------------------------------------------------
-const tabSnake = document.getElementById('tab-snake');
-const tabShooter = document.getElementById('tab-shooter');
-const sectionSnake = document.getElementById('section-snake');
-const sectionShooter = document.getElementById('section-shooter');
-
-tabSnake.addEventListener('click', () => {
-  tabSnake.classList.add('active');
-  tabShooter.classList.remove('active');
-  sectionSnake.classList.remove('hidden');
-  sectionShooter.classList.add('hidden');
-});
-
-tabShooter.addEventListener('click', () => {
-  tabShooter.classList.add('active');
-  tabSnake.classList.remove('active');
-  sectionShooter.classList.remove('hidden');
-  sectionSnake.classList.add('hidden');
-});
-
-// --------------------------------------------------
-// 3. JOGO DA COBRINHA (SNAKE)
-// --------------------------------------------------
+// 2. SNAKE
 const snakeCanvas = document.getElementById('snake-canvas');
 const snakeCtx = snakeCanvas.getContext('2d');
-const btnPlaySnake = document.getElementById('btn-play-snake');
-const snakeOverlay = document.getElementById('snake-overlay');
-const snakeScoreEl = document.getElementById('snake-score');
+const gridSize = 20, tileCount = 20;
+let snake = [{x: 10, y: 10}], food = {x: 5, y: 5, type: 'normal'}, dx = 1, dy = 0, snakeScore = 0, snakeLoop = null, snakeParticles = [];
 
-const gridSize = 20;
-const tileCount = snakeCanvas.width / gridSize;
-let snake = [{x: 10, y: 10}];
-let food = {x: 5, y: 5};
-let dx = 1, dy = 0;
-let snakeScore = 0;
-let snakeLoop = null;
-
-btnPlaySnake.addEventListener('click', startSnake);
-
-function startSnake() {
-  snake = [{x: 10, y: 10}];
-  dx = 1; dy = 0;
-  snakeScore = 0;
-  snakeScoreEl.innerText = '0';
-  snakeOverlay.classList.add('hidden');
+document.getElementById('btn-play-snake').onclick = () => {
+  snake = [{x: 10, y: 10}]; dx = 1; dy = 0; snakeScore = 0;
+  document.getElementById('snake-score').innerText = '0';
+  document.getElementById('snake-overlay').classList.add('hidden');
   spawnFood();
-  if(snakeLoop) clearInterval(snakeLoop);
+  if (snakeLoop) clearInterval(snakeLoop);
   snakeLoop = setInterval(updateSnake, 100);
+};
+
+function spawnFood() {
+  food.x = Math.floor(Math.random() * tileCount);
+  food.y = Math.floor(Math.random() * tileCount);
+  food.type = Math.random() > 0.8 ? 'gold' : 'normal';
 }
 
 function updateSnake() {
   const head = {x: snake[0].x + dx, y: snake[0].y + dy};
 
-  // Colisão com Paredes
-  if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-    return gameOverSnake();
-  }
-
-  // Colisão com o Corpo
-  for (let segment of snake) {
-    if (head.x === segment.x && head.y === segment.y) {
-      return gameOverSnake();
-    }
+  if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount || snake.some(s => s.x === head.x && s.y === head.y)) {
+    playSound(120, 'sawtooth', 0.3);
+    triggerShake('wrapper-snake');
+    clearInterval(snakeLoop);
+    updateHighScore('snake', snakeScore);
+    document.getElementById('snake-overlay').classList.remove('hidden');
+    return;
   }
 
   snake.unshift(head);
 
-  // Comer Comida
   if (head.x === food.x && head.y === food.y) {
-    snakeScore += 10;
-    snakeScoreEl.innerText = snakeScore;
-    addScore(10);
+    const pts = food.type === 'gold' ? 30 : 10;
+    snakeScore += pts;
+    document.getElementById('snake-score').innerText = snakeScore;
+    addScore(pts);
+    playSound(food.type === 'gold' ? 880 : 520, 'square', 0.1);
+    for (let i = 0; i < 12; i++) snakeParticles.push(new Particle(food.x * gridSize + 10, food.y * gridSize + 10, food.type === 'gold' ? '#eab308' : '#ef4444'));
     spawnFood();
   } else {
     snake.pop();
   }
 
-  drawSnakeGame();
-}
-
-function drawSnakeGame() {
   snakeCtx.fillStyle = '#020617';
-  snakeCtx.fillRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+  snakeCtx.fillRect(0, 0, 400, 400);
 
-  // Desenhar Comida
-  snakeCtx.fillStyle = '#ef4444';
-  snakeCtx.shadowBlur = 10;
-  snakeCtx.shadowColor = '#ef4444';
-  snakeCtx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+  // Comida
+  snakeCtx.fillStyle = food.type === 'gold' ? '#eab308' : '#ef4444';
+  snakeCtx.fillRect(food.x * gridSize + 1, food.y * gridSize + 1, gridSize - 2, gridSize - 2);
 
-  // Desenhar Cobrinha
+  // Cobrinha
   snakeCtx.fillStyle = '#10b981';
-  snakeCtx.shadowColor = '#10b981';
-  snake.forEach(segment => {
-    snakeCtx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+  snake.forEach(s => snakeCtx.fillRect(s.x * gridSize + 1, s.y * gridSize + 1, gridSize - 2, gridSize - 2));
+
+  // Partículas
+  snakeParticles.forEach((p, index) => {
+    p.update(); p.draw(snakeCtx);
+    if (p.alpha <= 0) snakeParticles.splice(index, 1);
   });
-  snakeCtx.shadowBlur = 0;
 }
 
-function spawnFood() {
-  food.x = Math.floor(Math.random() * tileCount);
-  food.y = Math.floor(Math.random() * tileCount);
-}
-
-function gameOverSnake() {
-  clearInterval(snakeLoop);
-  snakeOverlay.classList.remove('hidden');
-  btnPlaySnake.innerText = "Tentar Novamente";
-}
-
-// Controles Teclado + Mobile
 document.addEventListener('keydown', e => {
   if (e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -1; }
   if (e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = 1; }
   if (e.key === 'ArrowLeft' && dx === 0) { dx = -1; dy = 0; }
   if (e.key === 'ArrowRight' && dx === 0) { dx = 1; dy = 0; }
 });
+document.getElementById('btn-up').onclick = () => { if (dy === 0) { dx = 0; dy = -1; } };
+document.getElementById('btn-down').onclick = () => { if (dy === 0) { dx = 0; dy = 1; } };
+document.getElementById('btn-left').onclick = () => { if (dx === 0) { dx = -1; dy = 0; } };
+document.getElementById('btn-right').onclick = () => { if (dx === 0) { dx = 1; dy = 0; } };
 
-document.getElementById('btn-up').onclick = () => { if(dy === 0){ dx = 0; dy = -1; } };
-document.getElementById('btn-down').onclick = () => { if(dy === 0){ dx = 0; dy = 1; } };
-document.getElementById('btn-left').onclick = () => { if(dx === 0){ dx = -1; dy = 0; } };
-document.getElementById('btn-right').onclick = () => { if(dx === 0){ dx = 1; dy = 0; } };
-
-// --------------------------------------------------
-// 4. JOGO DE TIRO AO ALVO
-// --------------------------------------------------
+// 3. SHOOTER
 const shooterCanvas = document.getElementById('shooter-canvas');
 const shooterCtx = shooterCanvas.getContext('2d');
-const btnPlayShooter = document.getElementById('btn-play-shooter');
-const shooterOverlay = document.getElementById('shooter-overlay');
-const shooterScoreEl = document.getElementById('shooter-score');
-const shooterTimerEl = document.getElementById('shooter-timer');
+let target = {x: 200, y: 200, radius: 22, vx: 3, vy: 3}, shooterScore = 0, shooterTime = 30, shooterLoop = null, shooterTimer = null, shooterParticles = [];
 
-let target = { x: 200, y: 200, radius: 25, vx: 3, vy: 3 };
-let shooterScore = 0;
-let shooterTimeLeft = 30;
-let shooterLoop = null;
-let timerInterval = null;
-let shooterActive = false;
+document.getElementById('btn-play-shooter').onclick = () => {
+  shooterScore = 0; shooterTime = 30;
+  document.getElementById('shooter-score').innerText = '0';
+  document.getElementById('shooter-timer').innerText = '30';
+  document.getElementById('shooter-overlay').classList.add('hidden');
 
-btnPlayShooter.addEventListener('click', startShooter);
+  if (shooterLoop) cancelAnimationFrame(shooterLoop);
+  if (shooterTimer) clearInterval(shooterTimer);
 
-function startShooter() {
-  shooterScore = 0;
-  shooterTimeLeft = 30;
-  shooterScoreEl.innerText = '0';
-  shooterTimerEl.innerText = '30';
-  shooterOverlay.classList.add('hidden');
-  shooterActive = true;
-
-  resetTarget();
-
-  if(shooterLoop) cancelAnimationFrame(shooterLoop);
-  if(timerInterval) clearInterval(timerInterval);
-
-  timerInterval = setInterval(() => {
-    shooterTimeLeft--;
-    shooterTimerEl.innerText = shooterTimeLeft;
-    if(shooterTimeLeft <= 0) {
-      gameOverShooter();
+  shooterTimer = setInterval(() => {
+    shooterTime--;
+    document.getElementById('shooter-timer').innerText = shooterTime;
+    if (shooterTime <= 0) {
+      clearInterval(shooterTimer);
+      cancelAnimationFrame(shooterLoop);
+      playSound(200, 'triangle', 0.4);
+      updateHighScore('shooter', shooterScore);
+      document.getElementById('shooter-overlay').classList.remove('hidden');
     }
   }, 1000);
 
   renderShooter();
-}
-
-function resetTarget() {
-  target.x = Math.random() * (shooterCanvas.width - 60) + 30;
-  target.y = Math.random() * (shooterCanvas.height - 60) + 30;
-  target.vx = (Math.random() - 0.5) * 6;
-  target.vy = (Math.random() - 0.5) * 6;
-}
+};
 
 function renderShooter() {
-  if(!shooterActive) return;
-
   shooterCtx.fillStyle = '#020617';
-  shooterCtx.fillRect(0, 0, shooterCanvas.width, shooterCanvas.height);
+  shooterCtx.fillRect(0, 0, 400, 400);
 
-  // Mover Alvo
-  target.x += target.vx;
-  target.y += target.vy;
+  target.x += target.vx; target.y += target.vy;
+  if (target.x - target.radius < 0 || target.x + target.radius > 400) target.vx *= -1;
+  if (target.y - target.radius < 0 || target.y + target.radius > 400) target.vy *= -1;
 
-  if(target.x - target.radius < 0 || target.x + target.radius > shooterCanvas.width) target.vx *= -1;
-  if(target.y - target.radius < 0 || target.y + target.radius > shooterCanvas.height) target.vy *= -1;
-
-  // Desenhar Alvo
-  shooterCtx.beginPath();
-  shooterCtx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
   shooterCtx.fillStyle = '#ef4444';
-  shooterCtx.shadowBlur = 15;
-  shooterCtx.shadowColor = '#ef4444';
-  shooterCtx.fill();
-
-  shooterCtx.beginPath();
-  shooterCtx.arc(target.x, target.y, target.radius * 0.5, 0, Math.PI * 2);
+  shooterCtx.beginPath(); shooterCtx.arc(target.x, target.y, target.radius, 0, Math.PI * 2); shooterCtx.fill();
   shooterCtx.fillStyle = '#ffffff';
-  shooterCtx.fill();
-  shooterCtx.shadowBlur = 0;
+  shooterCtx.beginPath(); shooterCtx.arc(target.x, target.y, target.radius * 0.5, 0, Math.PI * 2); shooterCtx.fill();
 
-  shooterLoop = requestAnimationFrame(renderShooter);
+  shooterParticles.forEach((p, index) => {
+    p.update(); p.draw(shooterCtx);
+    if (p.alpha <= 0) shooterParticles.splice(index, 1);
+  });
+
+  if (shooterTime > 0) shooterLoop = requestAnimationFrame(renderShooter);
 }
 
-shooterCanvas.addEventListener('click', (e) => {
-  if(!shooterActive) return;
-
+shooterCanvas.addEventListener('click', e => {
+  if (shooterTime <= 0) return;
   const rect = shooterCanvas.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const clickY = e.clientY - rect.top;
-
-  const dist = Math.hypot(clickX - target.x, clickY - target.y);
-
-  if(dist < target.radius) {
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  if (Math.hypot(cx - target.x, cy - target.y) < target.radius) {
     shooterScore += 15;
-    shooterScoreEl.innerText = shooterScore;
+    document.getElementById('shooter-score').innerText = shooterScore;
     addScore(15);
-    resetTarget();
+    playSound(800, 'square', 0.08);
+    for (let i = 0; i < 15; i++) shooterParticles.push(new Particle(target.x, target.y, '#38bdf8'));
+    target.x = Math.random() * 340 + 30;
+    target.y = Math.random() * 340 + 30;
   }
 });
 
-function gameOverShooter() {
-  shooterActive = false;
-  clearInterval(timerInterval);
-  cancelAnimationFrame(shooterLoop);
-  shooterOverlay.classList.remove('hidden');
-  btnPlayShooter.innerText = "Jogar Novamente";
+// 4. BREAKOUT
+const breakoutCanvas = document.getElementById('breakout-canvas');
+const breakoutCtx = breakoutCanvas.getContext('2d');
+let paddleWidth = 75, paddleX = (400 - 75) / 2;
+let ballX = 200, ballY = 300, ballVx = 3, ballVy = -3;
+let breakoutScore = 0, breakoutLives = 3, breakoutLoop = null;
+let bricks = [], powerups = [], breakoutParticles = [];
+
+document.getElementById('btn-play-breakout').onclick = () => {
+  breakoutScore = 0; breakoutLives = 3; paddleWidth = 75;
+  document.getElementById('breakout-score').innerText = '0';
+  document.getElementById('breakout-lives').innerText = '3';
+  document.getElementById('breakout-overlay').classList.add('hidden');
+  resetBreakoutBall();
+  initBricks();
+  if (breakoutLoop) cancelAnimationFrame(breakoutLoop);
+  renderBreakout();
+};
+
+function resetBreakoutBall() {
+  ballX = 200; ballY = 300; ballVx = 3; ballVy = -3;
 }
+
+function initBricks() {
+  bricks = [];
+  for (let r = 0; r < 4; r++) {
+    bricks[r] = [];
+    for (let c = 0; c < 5; c++) {
+      bricks[r][c] = { x: c * 75 + 15, y: r * 22 + 30, status: 1 };
+    }
+  }
+}
+
+function renderBreakout() {
+  breakoutCtx.fillStyle = '#020617';
+  breakoutCtx.fillRect(0, 0, 400, 400);
+
+  // Blocos
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 5; c++) {
+      let b = bricks[r][c];
+      if (b.status === 1) {
+        if (ballX > b.x && ballX < b.x + 70 && ballY > b.y && ballY < b.y + 18) {
+          ballVy *= -1;
+          b.status = 0;
+          breakoutScore += 20;
+          document.getElementById('breakout-score').innerText = breakoutScore;
+          addScore(20);
+          playSound(600, 'square', 0.08);
+
+          for (let i = 0; i < 8; i++) breakoutParticles.push(new Particle(b.x + 35, b.y + 9, '#38bdf8'));
+          if (Math.random() > 0.7) powerups.push({ x: b.x + 35, y: b.y, vy: 2 });
+        }
+        breakoutCtx.fillStyle = '#38bdf8';
+        breakoutCtx.fillRect(b.x, b.y, 70, 18);
+      }
+    }
+  }
+
+  // Raquete & Bola
+  breakoutCtx.fillStyle = '#10b981';
+  breakoutCtx.fillRect(paddleX, 375, paddleWidth, 10);
+  breakoutCtx.beginPath(); breakoutCtx.arc(ballX, ballY, 6, 0, Math.PI * 2); breakoutCtx.fill();
+
+  // Movimento Bola
+  ballX += ballVx; ballY += ballVy;
+  if (ballX < 6 || ballX > 394) ballVx *= -1;
+  if (ballY < 6) ballVy *= -1;
+  if (ballY > 369 && ballX > paddleX && ballX < paddleX + paddleWidth) {
+    ballVy = -Math.abs(ballVy);
+    playSound(440, 'sine', 0.05);
+  } else if (ballY > 400) {
+    breakoutLives--;
+    document.getElementById('breakout-lives').innerText = breakoutLives;
+    playSound(150, 'sawtooth', 0.2);
+    triggerShake('wrapper-breakout');
+    if (breakoutLives <= 0) {
+      updateHighScore('breakout', breakoutScore);
+      document.getElementById('breakout-overlay').classList.remove('hidden');
+      return;
+    } else {
+      resetBreakoutBall();
+    }
+  }
+
+  // Powerups
+  powerups.forEach((p, index) => {
+    p.y += p.vy;
+    breakoutCtx.fillStyle = '#eab308';
+    breakoutCtx.fillRect(p.x - 5, p.y - 5, 10, 10);
+    if (p.y > 370 && p.x > paddleX && p.x < paddleX + paddleWidth) {
+      paddleWidth = 110;
+      playSound(750, 'triangle', 0.15);
+      powerups.splice(index, 1);
+    }
+  });
+
+  // Partículas
+  breakoutParticles.forEach((p, index) => {
+    p.update(); p.draw(breakoutCtx);
+    if (p.alpha <= 0) breakoutParticles.splice(index, 1);
+  });
+
+  breakoutLoop = requestAnimationFrame(renderBreakout);
+}
+
+breakoutCanvas.addEventListener('mousemove', e => {
+  const rect = breakoutCanvas.getBoundingClientRect();
+  paddleX = e.clientX - rect.left - paddleWidth / 2;
+});
