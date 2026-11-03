@@ -8,8 +8,29 @@
 </head>
 <body>
 
+  <!-- TELA DE SEGURANÇA / TERMINAL DE HACKING -->
+  <div id="gatekeeper" class="gatekeeper-screen">
+    <div class="glass-card gatekeeper-card fade-in">
+      <div class="lock-icon pulse-icon">⚡</div>
+      <h1 class="glow-title">TERMINAL CYBER</h1>
+      <p class="subtitle">SISTEMA BLOQUEADO. DECODIFIQUE O ACESSO.</p>
+
+      <div class="terminal-box">
+        <p id="terminal-text">> Aguardando credenciais...</p>
+      </div>
+
+      <div class="input-group">
+        <input type="password" id="pass-input" placeholder="Digite a senha (ou clique em Decodificar)">
+      </div>
+
+      <div style="margin-top: 15px;">
+        <button id="btn-hack" class="neon-btn green-neon btn-glow">Decodificar Acesso</button>
+      </div>
+    </div>
+  </div>
+
   <!-- PORTAL PRINCIPAL (ARCADE) -->
-  <div id="arcade-portal" class="arcade-screen">
+  <div id="arcade-portal" class="arcade-screen hidden">
     <header class="navbar">
       <div class="logo">⚡ CYBER ARCADE</div>
       <div style="display: flex; gap: 10px; align-items: center;">
@@ -23,10 +44,11 @@
         <button id="tab-snake" class="tab-btn active">🐍 Cobrinha</button>
         <button id="tab-shooter" class="tab-btn">🎯 Tiro ao Alvo</button>
         <button id="tab-breakout" class="tab-btn">🧱 Breakout</button>
+        <button id="tab-flappy" class="tab-btn">🛸 Flappy Cyber</button>
       </nav>
 
       <!-- COBRINHA -->
-      <section id="section-snake" class="game-section">
+      <section id="section-snake" class="game-section slide-up">
         <div class="game-header">
           <h2>Cyber Snake</h2>
           <div class="game-info">
@@ -38,7 +60,7 @@
         <div id="wrapper-snake" class="canvas-wrapper">
           <canvas id="snake-canvas" width="400" height="400"></canvas>
           <div id="snake-overlay" class="overlay">
-            <button id="btn-play-snake" class="neon-btn green-neon">Jogar Snake</button>
+            <button id="btn-play-snake" class="neon-btn green-neon btn-glow">Jogar Snake</button>
           </div>
         </div>
 
@@ -64,7 +86,7 @@
         <div id="wrapper-shooter" class="canvas-wrapper">
           <canvas id="shooter-canvas" width="400" height="400"></canvas>
           <div id="shooter-overlay" class="overlay">
-            <button id="btn-play-shooter" class="neon-btn red-neon">Iniciar Partida</button>
+            <button id="btn-play-shooter" class="neon-btn red-neon btn-glow">Iniciar Partida</button>
           </div>
         </div>
       </section>
@@ -83,7 +105,25 @@
         <div id="wrapper-breakout" class="canvas-wrapper">
           <canvas id="breakout-canvas" width="400" height="400"></canvas>
           <div id="breakout-overlay" class="overlay">
-            <button id="btn-play-breakout" class="neon-btn blue-neon">Jogar Breakout</button>
+            <button id="btn-play-breakout" class="neon-btn blue-neon btn-glow">Jogar Breakout</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLAPPY CYBER (NOVO JOGO) -->
+      <section id="section-flappy" class="game-section hidden">
+        <div class="game-header">
+          <h2>Flappy Cyber</h2>
+          <div class="game-info">
+            <span>Score: <span id="flappy-score">0</span></span> | 
+            <span>Recorde: <span id="flappy-high">0</span></span>
+          </div>
+        </div>
+        
+        <div id="wrapper-flappy" class="canvas-wrapper">
+          <canvas id="flappy-canvas" width="400" height="400"></canvas>
+          <div id="flappy-overlay" class="overlay">
+            <button id="btn-play-flappy" class="neon-btn yellow-neon btn-glow">Iniciar Flappy</button>
           </div>
         </div>
       </section>

@@ -27,12 +27,14 @@ let totalScore = 0;
 let highScores = {
   snake: localStorage.getItem('hs_snake') || 0,
   shooter: localStorage.getItem('hs_shooter') || 0,
-  breakout: localStorage.getItem('hs_breakout') || 0
+  breakout: localStorage.getItem('hs_breakout') || 0,
+  flappy: localStorage.getItem('hs_flappy') || 0
 };
 
 document.getElementById('snake-high').innerText = highScores.snake;
 document.getElementById('shooter-high').innerText = highScores.shooter;
 document.getElementById('breakout-high').innerText = highScores.breakout;
+document.getElementById('flappy-high').innerText = highScores.flappy;
 
 function addScore(pts) {
   totalScore += pts;
@@ -55,16 +57,62 @@ function triggerShake(elementId) {
   el.classList.add('shake');
 }
 
-// ABAS DO ARCADE
+// --------------------------------------------------
+// SEGURANÇA E TERMINAL CYBER
+// --------------------------------------------------
+const btnHack = document.getElementById('btn-hack');
+const passInput = document.getElementById('pass-input');
+const terminalText = document.getElementById('terminal-text');
+
+if (btnHack) {
+  btnHack.addEventListener('click', runHackSequence);
+}
+
+function runHackSequence() {
+  btnHack.disabled = true;
+  playSound(600, 'sine', 0.1);
+  
+  const messages = [
+    "> Conectando ao servidor...",
+    "> Bypass de firewall iniciado...",
+    "> Injetando protocolo de acesso...",
+    "> ACESSO CONCEDIDO!"
+  ];
+  
+  let i = 0;
+  terminalText.innerText = messages[0];
+  
+  const interval = setInterval(() => {
+    i++;
+    if (i < messages.length) {
+      terminalText.innerText = messages[i];
+      playSound(400 + (i * 200), 'square', 0.08);
+    } else {
+      clearInterval(interval);
+      setTimeout(() => {
+        document.getElementById('gatekeeper').classList.add('hidden');
+        const portal = document.getElementById('arcade-portal');
+        portal.classList.remove('hidden');
+        portal.classList.add('fade-in');
+      }, 500);
+    }
+  }, 400);
+}
+
+// --------------------------------------------------
+// TROCA DE ABAS
+// --------------------------------------------------
 const tabs = {
   snake: document.getElementById('tab-snake'),
   shooter: document.getElementById('tab-shooter'),
-  breakout: document.getElementById('tab-breakout')
+  breakout: document.getElementById('tab-breakout'),
+  flappy: document.getElementById('tab-flappy')
 };
 const sections = {
   snake: document.getElementById('section-snake'),
   shooter: document.getElementById('section-shooter'),
-  breakout: document.getElementById('section-breakout')
+  breakout: document.getElementById('section-breakout'),
+  flappy: document.getElementById('section-flappy')
 };
 
 Object.keys(tabs).forEach(key => {
@@ -73,13 +121,15 @@ Object.keys(tabs).forEach(key => {
     Object.keys(tabs).forEach(k => {
       tabs[k].classList.remove('active');
       sections[k].classList.add('hidden');
+      sections[k].classList.remove('slide-up');
     });
     tabs[key].classList.add('active');
     sections[key].classList.remove('hidden');
+    sections[key].classList.add('slide-up');
   });
 });
 
-// PARTÍCULAS
+// CLASSE DE PARTÍCULAS
 class Particle {
   constructor(x, y, color) {
     this.x = x; this.y = y; this.color = color;
@@ -152,15 +202,12 @@ function updateSnake() {
   snakeCtx.fillStyle = '#020617';
   snakeCtx.fillRect(0, 0, 400, 400);
 
-  // Comida
   snakeCtx.fillStyle = food.type === 'gold' ? '#eab308' : '#ef4444';
   snakeCtx.fillRect(food.x * gridSize + 1, food.y * gridSize + 1, gridSize - 2, gridSize - 2);
 
-  // Cobrinha
   snakeCtx.fillStyle = '#10b981';
   snake.forEach(s => snakeCtx.fillRect(s.x * gridSize + 1, s.y * gridSize + 1, gridSize - 2, gridSize - 2));
 
-  // Partículas
   snakeParticles.forEach((p, index) => {
     p.update(); p.draw(snakeCtx);
     if (p.alpha <= 0) snakeParticles.splice(index, 1);
@@ -280,7 +327,6 @@ function renderBreakout() {
   breakoutCtx.fillStyle = '#020617';
   breakoutCtx.fillRect(0, 0, 400, 400);
 
-  // Blocos
   for (let r = 0; r < 4; r++) {
     for (let c = 0; c < 5; c++) {
       let b = bricks[r][c];
@@ -302,12 +348,10 @@ function renderBreakout() {
     }
   }
 
-  // Raquete & Bola
   breakoutCtx.fillStyle = '#10b981';
   breakoutCtx.fillRect(paddleX, 375, paddleWidth, 10);
   breakoutCtx.beginPath(); breakoutCtx.arc(ballX, ballY, 6, 0, Math.PI * 2); breakoutCtx.fill();
 
-  // Movimento Bola
   ballX += ballVx; ballY += ballVy;
   if (ballX < 6 || ballX > 394) ballVx *= -1;
   if (ballY < 6) ballVy *= -1;
@@ -328,7 +372,6 @@ function renderBreakout() {
     }
   }
 
-  // Powerups
   powerups.forEach((p, index) => {
     p.y += p.vy;
     breakoutCtx.fillStyle = '#eab308';
@@ -340,7 +383,6 @@ function renderBreakout() {
     }
   });
 
-  // Partículas
   breakoutParticles.forEach((p, index) => {
     p.update(); p.draw(breakoutCtx);
     if (p.alpha <= 0) breakoutParticles.splice(index, 1);
@@ -352,4 +394,93 @@ function renderBreakout() {
 breakoutCanvas.addEventListener('mousemove', e => {
   const rect = breakoutCanvas.getBoundingClientRect();
   paddleX = e.clientX - rect.left - paddleWidth / 2;
+});
+
+// 4. FLAPPY CYBER (NOVO)
+const flappyCanvas = document.getElementById('flappy-canvas');
+const flappyCtx = flappyCanvas.getContext('2d');
+let birdY = 200, birdVelocity = 0, gravity = 0.35, jumpPower = -6;
+let pipes = [], flappyScore = 0, flappyLoop = null, flappyActive = false;
+
+document.getElementById('btn-play-flappy').onclick = startFlappy;
+
+function startFlappy() {
+  birdY = 200; birdVelocity = 0; pipes = []; flappyScore = 0;
+  document.getElementById('flappy-score').innerText = '0';
+  document.getElementById('flappy-overlay').classList.add('hidden');
+  flappyActive = true;
+  
+  if (flappyLoop) cancelAnimationFrame(flappyLoop);
+  renderFlappy();
+}
+
+function renderFlappy() {
+  if (!flappyActive) return;
+
+  flappyCtx.fillStyle = '#020617';
+  flappyCtx.fillRect(0, 0, 400, 400);
+
+  birdVelocity += gravity;
+  birdY += birdVelocity;
+
+  // Pássaro / Nave
+  flappyCtx.fillStyle = '#eab308';
+  flappyCtx.beginPath();
+  flappyCtx.arc(80, birdY, 12, 0, Math.PI * 2);
+  flappyCtx.fill();
+
+  // Colisão com teto/chão
+  if (birdY < 12 || birdY > 388) {
+    return gameOverFlappy();
+  }
+
+  // Gerar Canos
+  if (pipes.length === 0 || pipes[pipes.length - 1].x < 240) {
+    const gap = 110;
+    const topHeight = Math.floor(Math.random() * 180) + 40;
+    pipes.push({ x: 400, top: topHeight, bottom: topHeight + gap, passed: false });
+  }
+
+  // Desenhar e Mover Canos
+  pipes.forEach((pipe, i) => {
+    pipe.x -= 2;
+
+    flappyCtx.fillStyle = '#ec4899';
+    flappyCtx.fillRect(pipe.x, 0, 40, pipe.top);
+    flappyCtx.fillRect(pipe.x, pipe.bottom, 40, 400 - pipe.bottom);
+
+    // Colisão
+    if (80 + 12 > pipe.x && 80 - 12 < pipe.x + 40) {
+      if (birdY - 12 < pipe.top || birdY + 12 > pipe.bottom) {
+        gameOverFlappy();
+      }
+    }
+
+    // Pontuar
+    if (!pipe.passed && pipe.x < 80) {
+      pipe.passed = true;
+      flappyScore += 10;
+      document.getElementById('flappy-score').innerText = flappyScore;
+      addScore(10);
+      playSound(700, 'square', 0.08);
+    }
+  });
+
+  pipes = pipes.filter(p => p.x > -50);
+  flappyLoop = requestAnimationFrame(renderFlappy);
+}
+
+function gameOverFlappy() {
+  flappyActive = false;
+  playSound(140, 'sawtooth', 0.3);
+  triggerShake('wrapper-flappy');
+  updateHighScore('flappy', flappyScore);
+  document.getElementById('flappy-overlay').classList.remove('hidden');
+}
+
+flappyCanvas.addEventListener('click', () => {
+  if (flappyActive) {
+    birdVelocity = jumpPower;
+    playSound(450, 'sine', 0.05);
+  }
 });
