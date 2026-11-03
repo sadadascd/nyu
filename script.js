@@ -55,98 +55,7 @@ function triggerShake(elementId) {
   el.classList.add('shake');
 }
 
-// 1. DESBLOQUEIO (SIMON) CORRIGIDO
-const simonBtns = document.querySelectorAll('.simon-btn');
-const btnStartSimon = document.getElementById('btn-start-simon');
-const simonStatus = document.getElementById('simon-status');
-
-let simonSequence = [];
-let playerSequence = [];
-let simonPlaying = false;
-const simonFreqs = [261.6, 329.6, 392.0, 523.2];
-
-if (btnStartSimon) {
-  btnStartSimon.addEventListener('click', startSimon);
-}
-
-function startSimon() {
-  simonSequence = [];
-  playerSequence = [];
-  simonStatus.innerText = "Observe a sequência...";
-  btnStartSimon.classList.add('hidden');
-  
-  for (let i = 0; i < 3; i++) {
-    simonSequence.push(Math.floor(Math.random() * 4));
-  }
-  
-  playSimonSequence();
-}
-
-function playSimonSequence() {
-  simonPlaying = true;
-  let i = 0;
-  
-  const interval = setInterval(() => {
-    flashSimonBtn(simonSequence[i]);
-    i++;
-    if (i >= simonSequence.length) {
-      clearInterval(interval);
-      simonPlaying = false;
-      simonStatus.innerText = "Sua vez! Repita a sequência.";
-    }
-  }, 600);
-}
-
-function flashSimonBtn(index) {
-  const btn = simonBtns[index];
-  if (!btn) return;
-  
-  btn.classList.add('active');
-  playSound(simonFreqs[index], 'sine', 0.2);
-  
-  setTimeout(() => {
-    btn.classList.remove('active');
-  }, 300);
-}
-
-simonBtns.forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    if (simonPlaying || simonSequence.length === 0) return;
-    
-    const clickedColor = parseInt(e.target.dataset.color);
-    flashSimonBtn(clickedColor);
-    playerSequence.push(clickedColor);
-
-    const currentStep = playerSequence.length - 1;
-
-    if (playerSequence[currentStep] !== simonSequence[currentStep]) {
-      simonStatus.innerText = "❌ Sequência errada! Tente novamente.";
-      playSound(150, 'sawtooth', 0.3);
-      btnStartSimon.classList.remove('hidden');
-      btnStartSimon.innerText = "Tentar Novamente";
-      simonSequence = [];
-      return;
-    }
-
-    if (playerSequence.length === simonSequence.length) {
-      simonStatus.innerText = "✅ Acesso Concedido!";
-      playSound(587.3, 'triangle', 0.4);
-      setTimeout(unlockArcadeHub, 600);
-    }
-  });
-});
-
-function unlockArcadeHub() {
-  const gatekeeper = document.getElementById('gatekeeper');
-  const arcadePortal = document.getElementById('arcade-portal');
-  
-  if (gatekeeper && arcadePortal) {
-    gatekeeper.classList.add('hidden');
-    arcadePortal.classList.remove('hidden');
-  }
-}
-
-// ABAS
+// ABAS DO ARCADE
 const tabs = {
   snake: document.getElementById('tab-snake'),
   shooter: document.getElementById('tab-shooter'),
@@ -193,7 +102,7 @@ class Particle {
   }
 }
 
-// 2. SNAKE
+// 1. SNAKE
 const snakeCanvas = document.getElementById('snake-canvas');
 const snakeCtx = snakeCanvas.getContext('2d');
 const gridSize = 20, tileCount = 20;
@@ -269,7 +178,7 @@ document.getElementById('btn-down').onclick = () => { if (dy === 0) { dx = 0; dy
 document.getElementById('btn-left').onclick = () => { if (dx === 0) { dx = -1; dy = 0; } };
 document.getElementById('btn-right').onclick = () => { if (dx === 0) { dx = 1; dy = 0; } };
 
-// 3. SHOOTER
+// 2. SHOOTER
 const shooterCanvas = document.getElementById('shooter-canvas');
 const shooterCtx = shooterCanvas.getContext('2d');
 let target = {x: 200, y: 200, radius: 22, vx: 3, vy: 3}, shooterScore = 0, shooterTime = 30, shooterLoop = null, shooterTimer = null, shooterParticles = [];
@@ -334,7 +243,7 @@ shooterCanvas.addEventListener('click', e => {
   }
 });
 
-// 4. BREAKOUT
+// 3. BREAKOUT
 const breakoutCanvas = document.getElementById('breakout-canvas');
 const breakoutCtx = breakoutCanvas.getContext('2d');
 let paddleWidth = 75, paddleX = (400 - 75) / 2;
